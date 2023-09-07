@@ -1,5 +1,7 @@
+import 'dart:math' as math show Random;
+
+import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/home_page.dart';
 
 void main() => runApp(const MyApp());
 
@@ -8,40 +10,97 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
+    return const MaterialApp(
       title: 'Material App',
-      theme: ThemeData(
-        fontFamily: 'Lato',
-        useMaterial3: true,
-        appBarTheme: const AppBarTheme(
-          titleTextStyle: TextStyle(fontSize: 20, color: Colors.black),
-        ),
-        textTheme: const TextTheme(
-            titleLarge: TextStyle(
-              fontSize: 35,
-              fontWeight: FontWeight.bold,
-            ),
-            titleMedium: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-            bodySmall: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            )),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color.fromRGBO(254, 206, 1, 1),
-          primary: const Color.fromRGBO(254, 206, 1, 1),
-        ),
-        inputDecorationTheme: const InputDecorationTheme(
-            hintStyle: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-            prefixIconColor: Color.fromRGBO(119, 119, 119, 1)),
-      ),
-      home: const HomePage(),
+      home: HomePage(),
     );
+  }
+}
+
+const names = [
+  'foo',
+  'bar',
+  'baz',
+];
+
+extension RandomElement<T> on List<T> {
+  T get randomElement => this[math.Random().nextInt(length)];
+}
+
+class NamesCubit extends Cubit<String?> {
+  NamesCubit() : super(null);
+
+  void pickRandomName() {
+    emit(names.randomElement);
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({
+    super.key,
+  });
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late final NamesCubit cubit;
+
+  @override
+  void initState() {
+    super.initState();
+    cubit = NamesCubit();
+  }
+
+  @override
+  void dispose() {
+    cubit.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: const Text('Material App Bar'),
+        ),
+        body: StreamBuilder<String?>(
+          stream: cubit.stream,
+          builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
+            final button = ElevatedButton(
+              onPressed: cubit.pickRandomName,
+              child: const Text('Pick a random name'),
+            );
+            switch (snapshot.connectionState) {
+              case ConnectionState.none:
+                return button;
+              case ConnectionState.waiting:
+                return Column(
+                  children: [
+                    button,
+                    const SizedBox(height: 16),
+                    Text(snapshot.data ?? 'No name picked yet'),
+                  ],
+                );
+              case ConnectionState.active:
+                return Column(
+                  children: [
+                    button,
+                    const SizedBox(height: 16),
+                    Text(snapshot.data ?? 'No name picked yet'),
+                  ],
+                );
+              case ConnectionState.done:
+                return Column(
+                  children: [
+                    button,
+                    const SizedBox(height: 16),
+                    Text(snapshot.data ?? 'No name picked yet'),
+                  ],
+                );
+            }
+          },
+        ));
   }
 }
