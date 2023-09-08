@@ -1,106 +1,72 @@
-import 'dart:math' as math show Random;
-
-import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/cubit/post_cubit.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-void main() => runApp(const MyApp());
+void main() {
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      title: 'Material App',
-      home: HomePage(),
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: BlocProvider(
+        create: (context) => PostCubit(),
+        child: const MyHomePage(),
+      ),
     );
   }
 }
 
-const names = [
-  'foo',
-  'bar',
-  'baz',
-];
-
-extension RandomElement<T> on List<T> {
-  T get randomElement => this[math.Random().nextInt(length)];
-}
-
-class NamesCubit extends Cubit<String?> {
-  NamesCubit() : super(null);
-
-  void pickRandomName() {
-    emit(names.randomElement);
-  }
-}
-
-class HomePage extends StatefulWidget {
-  const HomePage({
-    super.key,
-  });
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  late final NamesCubit cubit;
-
-  @override
-  void initState() {
-    super.initState();
-    cubit = NamesCubit();
-  }
-
-  @override
-  void dispose() {
-    cubit.close();
-    super.dispose();
-  }
+class MyHomePage extends StatelessWidget {
+  const MyHomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    getPosts() {
+      context.read<PostCubit>().getPosts();
+    }
+
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Material App Bar'),
-        ),
-        body: StreamBuilder<String?>(
-          stream: cubit.stream,
-          builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
-            final button = ElevatedButton(
-              onPressed: cubit.pickRandomName,
-              child: const Text('Pick a random name'),
-            );
-            switch (snapshot.connectionState) {
-              case ConnectionState.none:
-                return button;
-              case ConnectionState.waiting:
-                return Column(
-                  children: [
-                    button,
-                    const SizedBox(height: 16),
-                    Text(snapshot.data ?? 'No name picked yet'),
-                  ],
+      appBar: AppBar(
+        title: const Text('Flutter Demo Home Page'),
+      ),
+      body: BlocBuilder<PostCubit, PostState>(
+        builder: (context, state) {
+          return state.when(
+            initial: () => ElevatedButton(
+              onPressed: () {
+                getPosts();
+              },
+              child: const Text('Get post'),
+            ),
+            loading: () => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            loaded: (post) => ListView.builder(
+              itemCount: post.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(post[index].title),
+                  subtitle: Text(post[index].body),
                 );
-              case ConnectionState.active:
-                return Column(
-                  children: [
-                    button,
-                    const SizedBox(height: 16),
-                    Text(snapshot.data ?? 'No name picked yet'),
-                  ],
-                );
-              case ConnectionState.done:
-                return Column(
-                  children: [
-                    button,
-                    const SizedBox(height: 16),
-                    Text(snapshot.data ?? 'No name picked yet'),
-                  ],
-                );
-            }
-          },
-        ));
+              },
+            ),
+            error: () => ElevatedButton(
+              onPressed: () {
+                getPosts();
+              },
+              child: const Text('Retry'),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
